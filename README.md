@@ -1,2 +1,2 @@
 # AIInference
-AI相关信息库
+ai 推理相关总结信息
