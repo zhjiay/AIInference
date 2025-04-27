@@ -1,4 +1,7 @@
 # tensorRT inference  
+> 使用版本：cuda12.1  tensorRT10.3  cudnn8.9.7
+
+## tensorRT推理流程
 
 tensorRT 推理onnx模型分为两部
 - 解析onnx模型，生成engine数据
@@ -8,7 +11,7 @@ tensorRT 推理onnx模型分为两部
 
 ![](imgs/TensorRTParseOnnx.png "tensorRT 解析onnx") 
 
-coda流程  
+code流程  
 1. 创建构建工具  
 ``` c++  
 NVlogger nvlogger;
@@ -69,4 +72,69 @@ auto context = std::unique_ptr<nvinfer1::IExecutionContext>(engine->createExecut
 ```  
 
 ### 二 推理
+
+![](imgs/tensorRTInfer.png "tensorRT inference") 
+
+#### 顺序推理
+code流程  
+
+1. 确定输入数据形状  
+如果是固定大小的模型  
+``` c++
+float* hInputPtr;//输入float数据指针
+size_t dataLen;//输入float数据长度
+float* dInputPtr;// gpu数据指针
+cudaMalloc((void**)&dInputPtr, dataLen*sizeof(float));
+cudaMemcpy(dInputPtr, hInputPtr, dataLen*sizeof(float), cudaMemcpyHostToDevice);
+
+float* dOutputPtr;
+size_t dOutputDataLen;
+cudaMalloc((void**)&dOutputPtr, dOutputDataLen*sizeof(float));//输出结果
+```  
+如果是动态shape模型，在输入数据是设定输入的shape。确定shape之后，与上固定shape的模型类似，分配显存传输数据。
+``` c++
+bool flag=context->setInputShape(/*string*/inputName_i, /*Dims*/inputShape_i)
+flag&=context->allInputShapesSpecified(); //确定所有shape被明确
+Dims output_i_Shape=context->getTensorShape(/*string*/ outputNodeName);//获取输出形状，用于之后传输数据
+```  
+
+2. context执行推理  
+```c++
+void* bindings[num_of_io] = { dInput0,dInput1,...,dOutput0, dOutput1, ... };
+bool flag=context->executeV2(bindings);//执行推理
+```
+
+3. 传出结果
+```c++
+float* hOutput;
+size_t outputLen; //如果是动态shape则使用之前获取的output dims信息获取输出长度
+cudaMemcpy(hOutput, dOutput, outputLen*sizeof(float))
+```
+
+#### 流推理
+使用cudaStream实现异步推理，流程和顺序推理一样，只是对应的处理函数换成流处理函数。
+1. 新建cuda流
+```c++
+cudaStream_t stream0;
+cudaStreamCreate(&stream0);
+```  
+
+2. 传输数据和执行推理
+```c++
+float* dInput;
+cudaMalloc((void**)&dInput, inputLen*sizeof(float));
+bool flag=context->setOutputTensorAddress(inputNodeName, (void*)dInput);//设置输入数据地址，多个input则分别设置
+
+float* dOutput;
+cudaMalloc((void**)&dOutput, outputLen*sizeof(float));
+bool flag=context->setOutputTensorAddress(outputNodeName, (void*)dOutput);//设置输出数据地址，多个output则分别设置
+
+cudaMemcpyAsync(dInput, hInput, dataLen * sizeof(float), cudaMemcpyHostToDevice, stream0); //异步传输input数据
+res&=context0->enqueueV3(stream0);//异步推理
+cudaMemcpyAsync(dOutput, dOutput, dataLen * sizeof(float), cudaMemcpyDeviceToHost, stream0); //异步传输数据
+
+cudaStreamSynchronize(stream0);//流同步
+```
+
+## tensorRT 推理Sample  
 
