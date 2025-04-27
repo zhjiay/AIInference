@@ -136,5 +136,28 @@ cudaMemcpyAsync(hOutput, dOutput, dataLen * sizeof(float), cudaMemcpyDeviceToHos
 cudaStreamSynchronize(stream0);//流同步
 ```
 
-## tensorRT 推理Sample  
+## tensorRT 推理Samples  
 
+### Classify
+
+
+### Detect
+
+
+### OBB
+
+
+### Segment
+
+
+### OCR
+
+
+### Custom Model
+
+
+## tensorRT 量化
+
+### 量化推理
+
+### 量化推理Samples  
