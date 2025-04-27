@@ -131,7 +131,7 @@ bool flag=context->setOutputTensorAddress(outputNodeName, (void*)dOutput);//设�
 
 cudaMemcpyAsync(dInput, hInput, dataLen * sizeof(float), cudaMemcpyHostToDevice, stream0); //异步传输input数据
 res&=context0->enqueueV3(stream0);//异步推理
-cudaMemcpyAsync(dOutput, dOutput, dataLen * sizeof(float), cudaMemcpyDeviceToHost, stream0); //异步传输数据
+cudaMemcpyAsync(hOutput, dOutput, dataLen * sizeof(float), cudaMemcpyDeviceToHost, stream0); //异步传输数据
 
 cudaStreamSynchronize(stream0);//流同步
 ```
