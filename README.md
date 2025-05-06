@@ -42,7 +42,10 @@ Dims inputDims=inputNode->getDimensions(); //获取当前节点形状，如果�
 4. 设置 IBuilderConfig  
 ``` c++
 auto config = std::unique_ptr<nvinfer1::IBuilderConfig>(builder->createBuilderConfig());
-config->setMaxWorkspaceSize(1 << 30); //设置中间工作数据显存1GB，engine和context不占用这部分显存，仅用来做中间计算数据缓存。
+
+//设置中间工作数据显存1GB，engine和context不占用这部分显存，仅用来做中间计算数据缓存。
+config->setMemoryPoolLimit(nvinfer1::MemoryPoolType::kWORKSPACE, 1 << 30); //新版本
+config->setMaxWorkspaceSize(1 << 30); //旧版本
 ``` 
 若是动态shape，则设置优化参数:  
 ``` c++
